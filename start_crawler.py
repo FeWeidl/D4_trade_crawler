@@ -26,25 +26,16 @@ class Config:
             self.filter_file = config.get("filter_file")
 
 class Filter:
-    def __init__(self, filter_file):
-        self.filter_file = filter_file
-        self.url = None
-        self.attributes = []
-        self.conditions = []
-        self.load_filter()
-
-    def load_filter(self):
-        with open(self.filter_file, 'r') as file:
-            filter_config = json.load(file)
-            self.url = filter_config.get("url")
-            self.attributes = filter_config.get("attributes", [])
-            self.conditions = filter_config.get("conditions", [])
+    def __init__(self, filter_data):
+        self.url = filter_data.get("url")
+        self.attributes = filter_data.get("attributes", [])
+        self.conditions = filter_data.get("conditions", [])
 
 def fetch_page(url):
     options = Options()
     options.add_argument("--headless")
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
-    driver.get(str(url))  # Ensure URL is a string
+    driver.get(str(url))
     
     try:
         WebDriverWait(driver, 10).until(
@@ -111,7 +102,7 @@ def parse_page(driver, content, filter_config):
 def is_item_relevant(attributes, conditions):
     for condition_group in conditions:
         match = True
-        for condition in condition_group.split(";"):
+        for condition in condition_group:
             field, operator, value = condition.split(",")
             value = float(value)
             
@@ -137,19 +128,22 @@ def is_item_relevant(attributes, conditions):
             return True
     return False
 
-def send_discord_notification(item, webhook_url):
+def send_discord_notification(item, webhook_url, url):
     webhook = DiscordWebhook(url=webhook_url)
     embed = DiscordEmbed(
         title=f"**{item['title']}**",
-        description=f"**User:** {item['user']}\n\n" + "\n\n".join([f"**{key}:** {value}" for key, value in item['attributes'].items()]) + f"\n\n**Price:** {item['price']}",
+        description=f"**User:** {item['user']}\n\n" + "\n\n".join([f"**{key}:** {value}" for key, value in item['attributes'].items()]) + f"\n\n**Price:** {item['price']}\n\n**URL:** [Link]({url})",
         color=242424
     )
     webhook.add_embed(embed)
     response = webhook.execute()
 
+
 if __name__ == "__main__":
     config = Config('config.json')
-    filter_config = Filter(config.filter_file)
+    with open(config.filter_file, 'r') as file:
+        filters_data = json.load(file)["filters"]
+    
     db_conn = sqlite3.connect('items.db')
     db_cursor = db_conn.cursor()
     db_cursor.execute('''
@@ -163,24 +157,27 @@ if __name__ == "__main__":
         )
     ''')
 
-    url = filter_config.url
-    
     while True:
-        driver, page_content = fetch_page(url)
-        if page_content:
-            interesting_items = parse_page(driver, page_content, filter_config)
-            if interesting_items:
-                for item in interesting_items:
-                    try:
-                        db_cursor.execute('''
-                            INSERT INTO items (title, user, attributes, price) VALUES (?, ?, ?, ?)
-                        ''', (item['title'], item['user'], json.dumps(item['attributes']), item['price']))
-                        db_conn.commit()
-                        send_discord_notification(item, config.webhook_url)
-                    except sqlite3.IntegrityError:
-                        print(f"Item '{item['title']}' by '{item['user']}' already exists in the database.")
-        else:
-            print("Fehler beim Abrufen der Seite")
+        for filter_data in filters_data:
+            filter_config = Filter(filter_data)
+            url = filter_config.url
+            driver, page_content = fetch_page(url)
+            if page_content:
+                interesting_items = parse_page(driver, page_content, filter_config)
+                if interesting_items:
+                    for item in interesting_items:
+                        try:
+                            db_cursor.execute('''
+                                INSERT INTO items (title, user, attributes, price) VALUES (?, ?, ?, ?)
+                            ''', (item['title'], item['user'], json.dumps(item['attributes']), item['price']))
+                            db_conn.commit()
+                            send_discord_notification(item, config.webhook_url, url)
+                        except sqlite3.IntegrityError:
+                            print(f"Item '{item['title']}' by '{item['user']}' already exists in the database.")
+            else:
+                print("Fehler beim Abrufen der Seite")
+        
+            driver.quit()
         
         time.sleep(60)
-        driver.quit()
+
