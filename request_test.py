@@ -1,4 +1,5 @@
 import time
+import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options
@@ -7,7 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
-from discord_webhook import DiscordWebhook
+from discord_webhook import DiscordWebhook, DiscordEmbed
 
 class Config:
     def __init__(self, config_file):
@@ -19,15 +20,14 @@ class Config:
         with open(self.config_file, 'r') as file:
             for line in file:
                 key, value = line.strip().split(':', 1)
-                setattr(self, key, value)
+                setattr(self, key, value.strip())
 
 def fetch_page(url):
     options = Options()
-    options.add_argument("--headless")  # Führen Sie den Browser im Headless-Modus aus
+    options.add_argument("--headless")
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
     driver.get(url)
     
-    # Warten Sie, bis die Seite geladen ist (falls erforderlich)
     try:
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CLASS_NAME, 'flip-card-face'))
@@ -36,9 +36,7 @@ def fetch_page(url):
         print(f"Fehler beim Warten auf die Seite: {e}")
     
     page_content = driver.page_source
-    driver.quit()
-    
-    # Speichern des abgerufenen Inhalts in einer Textdatei
+
     with open("recent_fetch.html", "w", encoding="utf-8") as file:
         file.write(page_content)
     
@@ -52,22 +50,18 @@ def parse_page(content):
     results = []
 
     for item in items:
-        # Extrahieren des Titels
         title_element = item.find('div', class_='flex max-w-[250px] flex-wrap items-center gap-0.5 font-diablo text-xs font-bold uppercase sm:text-sm')
         title = title_element.text.strip() if title_element else "N/A"
         print(f'Title: {title}')
         
-        # Extrahieren der Bewegungsgeschwindigkeit
         movement_speed_element = item.find('span', string=lambda text: text and "Movement Speed" in text)
         movement_speed = movement_speed_element.text if movement_speed_element else "N/A"
         print(f'Movement Speed: {movement_speed}')
         
-        # Extrahieren der Schadensreduzierung
         damage_reduction_element = item.find('span', string=lambda text: text and "Damage Reduction from Close Enemies" in text)
         damage_reduction = damage_reduction_element.text if damage_reduction_element else "N/A"
         print(f'Damage Reduction from Close Enemies: {damage_reduction}')
         
-        # Extrahieren des Preisfeldes oder der Nachricht "Make an offer!"
         footer_element = item.find_next('div', class_='bg-white/5 backdrop-blur centered -mb-2 -ml-2 flex w-[calc(100%_+_16px)] flex-col gap-0 rounded-b-lg border-t-2 border-dim-yellow py-2 relative')
         if footer_element:
             exact_price = footer_element.find('h6', string="Exact Price")
@@ -81,16 +75,27 @@ def parse_page(content):
             price = "N/A"
         
         print(f'Price: {price}')
+        
         print('-' * 40)
         
-        # Prüfen, ob das Item interessant ist (Beispielbedingung: Preis vorhanden)
         if price != "N/A":
-            results.append(f'Title: {title}\nMovement Speed: {movement_speed}\nDamage Reduction: {damage_reduction}\nPrice: {price}\n')
+            results.append({
+                'title': title,
+                'movement_speed': movement_speed,
+                'damage_reduction': damage_reduction,
+                'price': price
+            })
 
     return results
 
-def send_discord_notification(message, webhook_url):
-    webhook = DiscordWebhook(url=webhook_url, content=message)
+def send_discord_notification(item, webhook_url):
+    webhook = DiscordWebhook(url=webhook_url)
+    embed = DiscordEmbed(
+        title=f"**{item['title']}**",
+        description=f"**Movement Speed:** {item['movement_speed']}\n**Damage Reduction:** {item['damage_reduction']}\n**Price:** {item['price']}",
+        color=242424
+    )
+    webhook.add_embed(embed)
     response = webhook.execute()
 
 if __name__ == "__main__":
@@ -103,9 +108,8 @@ if __name__ == "__main__":
             interesting_items = parse_page(page_content)
             if interesting_items:
                 for item in interesting_items:
-                    send_discord_notification(item, config.webhookurl)
+                    send_discord_notification(item, config.webhook_url)
         else:
             print("Fehler beim Abrufen der Seite")
         
-        # Wartezeit von einer Minute
         time.sleep(60)
