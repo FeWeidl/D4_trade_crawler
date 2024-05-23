@@ -1,0 +1,13 @@
+{
+    "url": "https://diablo.trade/listings/items?cursor=1&group1=&rarity=unique&uniqueItem=yens-blessing",
+    "attributes": [
+        "Movement Speed",
+        "Damage Reduction from Close Enemies",
+        "Vulnerable Damage",
+        "Lucky Hit"
+    ],
+    "conditions": [
+        "Movement Speed,>,20;Damage Reduction from Close Enemies,>,12",
+        "Damage Reduction from Close Enemies,>,15"
+    ]
+}

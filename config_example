@@ -1,2 +1,4 @@
-#Discord  Server Settings, Apps, Integrations, create a Webhook
-webhookurl:<yourwebhookurl>
+{
+    "webhook_url": "<yourwebhookurl>",
+    "filter_file": "filters.json"
+}
