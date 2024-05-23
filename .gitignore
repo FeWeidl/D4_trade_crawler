@@ -1,0 +1,8 @@
+# Ignore the config file
+config
+
+# Ignore other typical files and directories
+*.log
+*.pyc
+__pycache__/
+.env

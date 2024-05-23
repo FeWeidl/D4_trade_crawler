@@ -94,7 +94,7 @@ def send_discord_notification(message, webhook_url):
     response = webhook.execute()
 
 if __name__ == "__main__":
-    config = Config('config.txt')
+    config = Config('config')
     url = "https://diablo.trade/listings/items?cursor=21&group1=&rarity=unique&uniqueItem=yens-blessing"
     
     while True:
