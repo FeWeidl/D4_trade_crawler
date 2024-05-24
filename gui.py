@@ -1,39 +1,71 @@
 import tkinter as tk
-from tkinter import messagebox
 from tkinter import scrolledtext
+from tkinter import font as tkfont
+from PIL import Image, ImageTk
 import threading
+import logging
 from start_crawler import start_crawler, stop_crawler
+
+class TextHandler(logging.Handler):
+    def __init__(self, text_widget):
+        super().__init__()
+        self.text_widget = text_widget
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.text_widget.config(state=tk.NORMAL)
+        self.text_widget.insert(tk.END, msg + '\n')
+        self.text_widget.config(state=tk.DISABLED)
+        self.text_widget.yview(tk.END)
 
 class CrawlerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Crawler Control")
-        self.root.geometry("800x600")  # Set the window size
+        self.root.geometry("1600x900")  # Set the window size for a larger widescreen format
 
         self.running = False
 
-        # Create a frame for the buttons
-        self.button_frame = tk.Frame(root)
-        self.button_frame.pack(pady=20)
+        # Load and display the background image
+        self.load_background()
 
-        # Create buttons
-        self.start_button = tk.Button(self.button_frame, text="Start", width=15, command=self.start_thread)
+        # Create a frame for the buttons with a transparent background
+        self.button_frame = tk.Frame(root, bg="")
+        self.button_frame.pack(side=tk.TOP, pady=20)
+
+        # Create buttons with enhanced styling
+        button_font = tkfont.Font(family="Helvetica", size=12, weight="bold")
+        self.start_button = tk.Button(self.button_frame, text="Start", width=15, command=self.start_thread, bg="lightgray", font=button_font)
         self.start_button.grid(row=0, column=0, padx=10)
 
-        self.stop_button = tk.Button(self.button_frame, text="Stop", width=15, command=self.stop_crawler)
+        self.stop_button = tk.Button(self.button_frame, text="Stop", width=15, command=self.stop_crawler, bg="lightgray", font=button_font)
         self.stop_button.grid(row=0, column=1, padx=10)
 
-        self.exit_button = tk.Button(self.button_frame, text="Exit", width=15, command=self.exit_app)
+        self.exit_button = tk.Button(self.button_frame, text="Exit", width=15, command=self.exit_app, bg="lightgray", font=button_font)
         self.exit_button.grid(row=0, column=2, padx=10)
 
         # Create a scrolled text widget for logs
-        self.log_area = scrolledtext.ScrolledText(root, width=90, height=30)
-        self.log_area.pack(pady=20)
+        self.log_area = scrolledtext.ScrolledText(root, width=180, height=15, state=tk.DISABLED)
+        self.log_area.pack(side=tk.BOTTOM, fill=tk.X, pady=(0, 20))  # Move log area to the bottom and make it resizable
+
+        # Set up logging to the text widget
+        text_handler = TextHandler(self.log_area)
+        logging.basicConfig(level=logging.INFO, handlers=[text_handler], format='%(asctime)s - %(levelname)s - %(message)s')
+
+    def load_background(self):
+        # Load the image file
+        bg_image = Image.open("background.png")
+        bg_image = bg_image.resize((1600, 900), Image.LANCZOS)  # Resize the image to fit the GUI
+        self.bg_image = ImageTk.PhotoImage(bg_image)
+
+        # Create a label to display the image
+        self.bg_label = tk.Label(self.root, image=self.bg_image)
+        self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 
     def start_thread(self):
         if not self.running:
             self.running = True
-            self.log_area.insert(tk.END, "Crawler started...\n")
+            logging.info("Crawler started...")
             self.thread = threading.Thread(target=self.start_crawler_wrapper)
             self.thread.start()
 
@@ -44,7 +76,7 @@ class CrawlerGUI:
         if self.running:
             stop_crawler()
             self.running = False
-            self.log_area.insert(tk.END, "Crawler stopped...\n")
+            logging.info("Crawler stopped...")
 
     def exit_app(self):
         self.stop_crawler()

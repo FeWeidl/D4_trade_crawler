@@ -7,9 +7,6 @@ from modules.database import connect_db, create_table, insert_item, item_exists
 from modules.config import Config
 from modules.filter import Filters, Filter
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 # Global variable to control the running state of the crawler
 running = False
 
@@ -28,6 +25,7 @@ def start_crawler():
         return
     
     while running:
+        logging.info("Starting new search loop...")
         for filter_data in filters.filters_data:
             if not running:
                 break
@@ -51,8 +49,10 @@ def start_crawler():
             else:
                 logging.error(f"Error fetching page content for URL: {url}")
             driver.quit()
+        logging.info("Waiting for next search loop...")
         time.sleep(60)  # Wait for 60 seconds before the next round of fetching
 
 def stop_crawler():
     global running
     running = False
+    logging.info("Crawler stopped.")
