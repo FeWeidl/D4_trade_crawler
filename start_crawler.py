@@ -1,42 +1,18 @@
 import time
-import json
 import logging
 from fetcher import fetch_page
 from parser import parse_page
 from notifier import send_discord_notification
 from database import connect_db, create_table, insert_item
+from config import Config
+from filter import Filter, load_filters
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-class Config:
-    def __init__(self, config_file):
-        self.config_file = config_file
-        self.webhook_url = None
-        self.filter_file = None
-        self.load_config()
-
-    def load_config(self):
-        try:
-            with open(self.config_file, 'r') as file:
-                config = json.load(file)
-                self.webhook_url = config.get("webhook_url")
-                self.filter_file = config.get("filter_file")
-                logging.info("Configuration loaded successfully.")
-        except Exception as e:
-            logging.error("Error loading configuration: %s", e)
-
-class Filter:
-    def __init__(self, filter_data):
-        self.url = filter_data.get("url")
-        self.attributes = filter_data.get("attributes", [])
-        self.conditions = filter_data.get("conditions", [])
-        logging.info("Filter initialized with URL: %s", self.url)
-
 if __name__ == "__main__":
     config = Config('config.json')
-    with open(config.filter_file, 'r') as file:
-        filters_data = json.load(file)["filters"]
+    filters_data = load_filters(config.filter_file)
     
     db_conn, db_cursor = connect_db('items.db')
     create_table(db_cursor)
