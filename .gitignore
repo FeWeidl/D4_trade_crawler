@@ -1,8 +1,14 @@
 # Ignore the config file
-config
+config.json
+
+#Ignore generated files
+items.db
+recent_fetch.html
+
 
 # Ignore other typical files and directories
 *.log
 *.pyc
 __pycache__/
 .env
+.vs
