@@ -29,23 +29,23 @@ class CrawlerGUI:
         # Load and display the background image
         self.load_background()
 
-        # Create a frame for the buttons with a transparent background
-        self.button_frame = tk.Frame(root, bg="")
+        # Create a frame for the buttons with a black background
+        self.button_frame = tk.Frame(root, bg="black", highlightthickness=0)
         self.button_frame.pack(side=tk.TOP, pady=20)
 
         # Create buttons with enhanced styling
         button_font = tkfont.Font(family="Helvetica", size=12, weight="bold")
-        self.start_button = tk.Button(self.button_frame, text="Start", width=15, command=self.start_thread, bg="lightgray", font=button_font)
+        self.start_button = tk.Button(self.button_frame, text="Start", width=15, command=self.start_thread, bg="#4CAF50", fg="white", font=button_font, activebackground="#45a049", bd=0)
         self.start_button.grid(row=0, column=0, padx=10)
 
-        self.stop_button = tk.Button(self.button_frame, text="Stop", width=15, command=self.stop_crawler, bg="lightgray", font=button_font)
+        self.stop_button = tk.Button(self.button_frame, text="Stop", width=15, command=self.stop_crawler, bg="#f44336", fg="white", font=button_font, activebackground="#e41e26", bd=0)
         self.stop_button.grid(row=0, column=1, padx=10)
 
-        self.exit_button = tk.Button(self.button_frame, text="Exit", width=15, command=self.exit_app, bg="lightgray", font=button_font)
+        self.exit_button = tk.Button(self.button_frame, text="Exit", width=15, command=self.exit_app, bg="#555555", fg="white", font=button_font, activebackground="#444444", bd=0)
         self.exit_button.grid(row=0, column=2, padx=10)
 
-        # Create a scrolled text widget for logs
-        self.log_area = scrolledtext.ScrolledText(root, width=180, height=15, state=tk.DISABLED)
+        # Create a scrolled text widget for logs with a themed appearance
+        self.log_area = scrolledtext.ScrolledText(root, width=180, height=15, state=tk.DISABLED, bg="#2C0E0E", fg="#E5E5E5", font=("Courier New", 10))
         self.log_area.pack(side=tk.BOTTOM, fill=tk.X, pady=(0, 20))  # Move log area to the bottom and make it resizable
 
         # Set up logging to the text widget
