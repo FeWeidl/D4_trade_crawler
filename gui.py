@@ -97,7 +97,8 @@ class CrawlerGUI:
             with open('sent_items.json', 'r') as f:
                 for line in f:
                     item = json.loads(line.strip())
-                    self.sent_items_listbox.insert(END, json.dumps(item, indent=2))  # Display the entire item as JSON
+                    display_text = f"User: {item.get('user')}, URL: {item.get('url')}, Attributes: {json.dumps(item.get('triggered_attributes'))}"
+                    self.sent_items_listbox.insert(END, display_text)  # Display the entire item as JSON
         except FileNotFoundError:
             logging.error("sent_items.json file not found.")
 
