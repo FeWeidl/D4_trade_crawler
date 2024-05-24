@@ -1,11 +1,10 @@
 import time
-import os
-import sqlite3
 import json
 import logging
 from fetcher import fetch_page
 from parser import parse_page
 from notifier import send_discord_notification
+from database import connect_db, create_table, insert_item
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -38,18 +37,10 @@ if __name__ == "__main__":
     config = Config('config.json')
     with open(config.filter_file, 'r') as file:
         filters_data = json.load(file)["filters"]
-    db_conn = sqlite3.connect('items.db')
-    db_cursor = db_conn.cursor()
-    db_cursor.execute('''
-        CREATE TABLE IF NOT EXISTS items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            user TEXT,
-            attributes TEXT,
-            price TEXT,
-            UNIQUE(title, user, attributes, price)
-        )
-    ''')
+    
+    db_conn, db_cursor = connect_db('items.db')
+    create_table(db_cursor)
+    
     while True:
         for filter_data in filters_data:
             filter_config = Filter(filter_data)
@@ -59,14 +50,9 @@ if __name__ == "__main__":
                 interesting_items = parse_page(driver, page_content, filter_config)
                 if interesting_items:
                     for item in interesting_items:
-                        try:
-                            db_cursor.execute('''
-                                INSERT INTO items (title, user, attributes, price) VALUES (?, ?, ?, ?)
-                            ''', (item['title'], item['user'], json.dumps(item['attributes']), item['price']))
-                            db_conn.commit()
-                            send_discord_notification(item, config.webhook_url, url)
-                        except sqlite3.IntegrityError:
-                            logging.info("Item '%s' by '%s' already exists in the database.", item['title'], item['user'])
+                        insert_item(db_cursor, item)
+                        db_conn.commit()
+                        send_discord_notification(item, config.webhook_url, url)
             else:
                 logging.error("Error fetching page content.")
             driver.quit()
