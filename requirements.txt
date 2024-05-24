@@ -3,3 +3,4 @@ discord-webhook
 requests
 selenium
 webdriver-manager
+pillow

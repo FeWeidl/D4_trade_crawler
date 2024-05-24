@@ -1,26 +1,24 @@
-import logging
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import logging
 
 def fetch_page(url):
-    options = Options()
-    options.add_argument("--headless")
-    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
-    logging.info("Fetching page: %s", url)
-    driver.get(str(url))
     try:
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CLASS_NAME, 'flip-card-face'))
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        driver = webdriver.Chrome(options=options)
+        driver.get(url)
+
+        # Wait for the page to load by checking for the presence of the element with id="search-top"
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.ID, "search-top"))
         )
-        logging.info("Page loaded successfully.")
+        logging.info(f"Page loaded successfully: {url}")
+        return driver, driver.page_source
     except Exception as e:
-        logging.error("Error waiting for page to load: %s", e)
-    page_content = driver.page_source
-    with open("recent_fetch.html", "w", encoding="utf-8") as file:
-        file.write(page_content)
-    return driver, page_content
+        logging.error(f"Error waiting for page to load: {e}")
+        return None, None

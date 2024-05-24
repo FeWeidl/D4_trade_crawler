@@ -1,31 +1,44 @@
 import sqlite3
-import json
 import logging
+import json
 
-def connect_db(db_name):
-    conn = sqlite3.connect(db_name)
-    cursor = conn.cursor()
-    logging.info("Database connection established.")
-    return conn, cursor
+def connect_db(db_file):
+    try:
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
+        logging.info("Database connection established.")
+        return conn, cursor
+    except sqlite3.Error as e:
+        logging.error(f"Error connecting to database: {e}")
+        return None, None
 
 def create_table(cursor):
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            user TEXT,
-            attributes TEXT,
-            price TEXT,
-            UNIQUE(title, user, attributes, price)
-        )
-    ''')
-    logging.info("Table created if not exists.")
+    try:
+        cursor.execute('''CREATE TABLE IF NOT EXISTS items (
+                            id TEXT PRIMARY KEY,
+                            name TEXT,
+                            attributes TEXT,
+                            link TEXT
+                          )''')
+        logging.info("Table created if not exists.")
+    except sqlite3.Error as e:
+        logging.error(f"Error creating table: {e}")
 
 def insert_item(cursor, item):
     try:
-        cursor.execute('''
-            INSERT INTO items (title, user, attributes, price) VALUES (?, ?, ?, ?)
-        ''', (item['title'], item['user'], json.dumps(item['attributes']), item['price']))
-        logging.info("Item inserted into database: %s", item['title'])
+        cursor.execute('''INSERT INTO items (id, name, attributes, link) 
+                          VALUES (?, ?, ?, ?)''', 
+                          (item.get('id'), item.get('name'), json.dumps(item.get('attributes')), item.get('link')))
+        logging.info(f"Item inserted into database: {item.get('name')}")
     except sqlite3.IntegrityError:
-        logging.info("Item '%s' by '%s' already exists in the database.", item['title'], item['user'])
+        logging.warning(f"Item already exists in database: {item.get('name')}")
+    except sqlite3.Error as e:
+        logging.error(f"Error inserting item: {e}")
+
+def item_exists(cursor, item):
+    try:
+        cursor.execute("SELECT * FROM items WHERE id=?", (item.get('id'),))
+        return cursor.fetchone() is not None
+    except sqlite3.Error as e:
+        logging.error(f"Error checking item existence: {e}")
+        return False
