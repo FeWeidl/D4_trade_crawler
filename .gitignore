@@ -1,5 +1,6 @@
 # Ignore the config file
 config.json
+sent_items.json
 
 #Ignore generated files
 items.db

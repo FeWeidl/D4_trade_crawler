@@ -1,4 +1,5 @@
 import time
+import json
 import logging
 from modules.fetcher import fetch_page
 from modules.parser import parse_page
@@ -46,11 +47,17 @@ def start_crawler():
                         db_conn.commit()
                         send_discord_notification(item, config.webhook_url, url)
                         logging.info(f"Item sent to Discord: {item}")
+                        save_sent_item(item)
             else:
                 logging.error(f"Error fetching page content for URL: {url}")
             driver.quit()
         logging.info("Waiting for next search loop...")
         time.sleep(60)  # Wait for 60 seconds before the next round of fetching
+
+def save_sent_item(item):
+    with open('sent_items.json', 'a') as f:
+        json.dump(item, f)
+        f.write('\n')
 
 def stop_crawler():
     global running

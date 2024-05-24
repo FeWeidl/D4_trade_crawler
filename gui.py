@@ -3,6 +3,7 @@ from tkinter import scrolledtext, font as tkfont, Toplevel, Listbox, END
 from PIL import Image, ImageTk
 import threading
 import logging
+import json
 from start_crawler import start_crawler, stop_crawler
 
 class TextHandler(logging.Handler):
@@ -44,8 +45,8 @@ class CrawlerGUI:
         self.exit_button = tk.Button(self.button_frame, text="Exit", width=15, command=self.exit_app, bg="#555555", fg="white", font=button_font, activebackground="#444444", bd=0)
         self.exit_button.grid(row=0, column=2, padx=10)
 
-        self.view_sent_button = tk.Button(self.button_frame, text="View Sent Items", width=15, command=self.open_sent_items_window, bg="#2196F3", fg="white", font=button_font, activebackground="#0b7dda", bd=0)
-        self.view_sent_button.grid(row=0, column=3, padx=10)
+        self.sent_items_button = tk.Button(self.button_frame, text="Sent Items", width=15, command=self.show_sent_items, bg="#555555", fg="white", font=button_font, activebackground="#444444", bd=0)
+        self.sent_items_button.grid(row=0, column=3, padx=10)
 
         # Create a scrolled text widget for logs with a themed appearance
         self.log_area = scrolledtext.ScrolledText(root, width=180, height=15, state=tk.DISABLED, bg="#2C0E0E", fg="#E5E5E5", font=("Courier New", 10))
@@ -81,24 +82,28 @@ class CrawlerGUI:
             self.running = False
             logging.info("Crawler stopped...")
 
+    def show_sent_items(self):
+        self.sent_items_window = Toplevel(self.root)
+        self.sent_items_window.title("Sent Items")
+        self.sent_items_window.geometry("800x600")
+
+        self.sent_items_listbox = Listbox(self.sent_items_window, width=100, height=30)
+        self.sent_items_listbox.pack(fill=tk.BOTH, expand=True)
+
+        self.load_sent_items()
+
+    def load_sent_items(self):
+        try:
+            with open('sent_items.json', 'r') as f:
+                for line in f:
+                    item = json.loads(line.strip())
+                    self.sent_items_listbox.insert(END, json.dumps(item, indent=2))  # Display the entire item as JSON
+        except FileNotFoundError:
+            logging.error("sent_items.json file not found.")
+
     def exit_app(self):
         self.stop_crawler()
         self.root.destroy()
-
-    def open_sent_items_window(self):
-        sent_items_window = Toplevel(self.root)
-        sent_items_window.title("Sent Items")
-        sent_items_window.geometry("800x600")
-        
-        listbox = Listbox(sent_items_window, width=100, height=30)
-        listbox.pack(pady=20)
-        
-        for item in self.sent_items:
-            listbox.insert(END, item)
-
-    def log_sent_item(self, item):
-        self.sent_items.append(item)
-        logging.info(f"Item sent to Discord: {item}")
 
 if __name__ == "__main__":
     root = tk.Tk()
