@@ -25,7 +25,6 @@ class CrawlerGUI:
         self.root.geometry("1600x900")  # Set the window size for a larger widescreen format
 
         self.running = False
-        self.sent_items = []
 
         # Load and display the background image
         self.load_background()
@@ -45,9 +44,6 @@ class CrawlerGUI:
         self.exit_button = tk.Button(self.button_frame, text="Exit", width=15, command=self.exit_app, bg="#555555", fg="white", font=button_font, activebackground="#444444", bd=0)
         self.exit_button.grid(row=0, column=2, padx=10)
 
-        self.sent_items_button = tk.Button(self.button_frame, text="Sent Items", width=15, command=self.show_sent_items, bg="#555555", fg="white", font=button_font, activebackground="#444444", bd=0)
-        self.sent_items_button.grid(row=0, column=3, padx=10)
-
         # Create a scrolled text widget for logs with a themed appearance
         self.log_area = scrolledtext.ScrolledText(root, width=180, height=15, state=tk.DISABLED, bg="#2C0E0E", fg="#E5E5E5", font=("Courier New", 10))
         self.log_area.pack(side=tk.BOTTOM, fill=tk.X, pady=(0, 20))  # Move log area to the bottom and make it resizable
@@ -55,6 +51,10 @@ class CrawlerGUI:
         # Set up logging to the text widget
         text_handler = TextHandler(self.log_area)
         logging.basicConfig(level=logging.INFO, handlers=[text_handler], format='%(asctime)s - %(levelname)s - %(message)s')
+
+        # Add the button to show sent items
+        self.sent_items_button = tk.Button(self.button_frame, text="Show Sent Items", width=15, command=self.show_sent_items, bg="#555555", fg="white", font=button_font, activebackground="#444444", bd=0)
+        self.sent_items_button.grid(row=0, column=3, padx=10)
 
     def load_background(self):
         # Load the image file
@@ -82,6 +82,10 @@ class CrawlerGUI:
             self.running = False
             logging.info("Crawler stopped...")
 
+    def exit_app(self):
+        self.stop_crawler()
+        self.root.destroy()
+
     def show_sent_items(self):
         self.sent_items_window = Toplevel(self.root)
         self.sent_items_window.title("Sent Items")
@@ -97,14 +101,15 @@ class CrawlerGUI:
             with open('sent_items.json', 'r') as f:
                 for line in f:
                     item = json.loads(line.strip())
-                    display_text = f"User: {item.get('user')}, URL: {item.get('url')}, Attributes: {json.dumps(item.get('triggered_attributes'))}"
-                    self.sent_items_listbox.insert(END, display_text)  # Display the entire item as JSON
+                    user = item.get('user', 'N/A')
+                    url = item.get('url', 'N/A')
+                    attributes = item.get('triggered_attributes', 'N/A')
+                    display_text = f"User: {user}, URL: {url}, Attributes: {attributes}"
+                    self.sent_items_listbox.insert(END, display_text)
         except FileNotFoundError:
-            logging.error("sent_items.json file not found.")
-
-    def exit_app(self):
-        self.stop_crawler()
-        self.root.destroy()
+            logging.warning("No sent items file found.")
+        except json.JSONDecodeError as e:
+            logging.error(f"Error decoding JSON: {e}")
 
 if __name__ == "__main__":
     root = tk.Tk()
