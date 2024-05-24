@@ -1,21 +1,25 @@
 import time
 import logging
-from utils.fetcher import fetch_page
-from utils.parser import parse_page
-from utils.notifier import send_discord_notification
-from utils.database import connect_db, create_table, insert_item
-from config.config import Config
-from filters.filter import Filters, Filter
+from modules.fetcher import fetch_page
+from modules.parser import parse_page
+from modules.notifier import send_discord_notification
+from modules.database import connect_db, create_table, insert_item
+from modules.config import Config
+from modules.filter import Filters, Filter
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 if __name__ == "__main__":
     config = Config('config/config.json')
-    filters = Filters(config.filter_file)
+    filters = Filters('config/filters.json')
     
     db_conn, db_cursor = connect_db('data/items.db')
     create_table(db_cursor)
+    
+    if not filters.filters_data:
+        logging.error("No filters loaded. Exiting.")
+        exit(1)
     
     while True:
         for filter_data in filters.filters_data:
